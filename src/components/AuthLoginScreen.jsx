@@ -17,7 +17,9 @@ import {
   Phone,
   Building,
   RefreshCw,
-  ChevronLeft
+  ChevronLeft,
+  Check,
+  X
 } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { generatePatientPin } from '../services/psychologyService';
@@ -30,7 +32,7 @@ export const validateCRP = (crp) => {
 };
 
 export const getPasswordStrength = (pwd) => {
-  if (!pwd) return { score: 0, label: 'Muito Fraca', color: '#EF4444', percent: 0, checks: {} };
+  if (!pwd) return { score: 0, label: 'Não informada', color: '#CBD5E1', percent: 0, checks: { length: false, hasUpper: false, hasLower: false, hasNumber: false, hasSpecial: false } };
   let score = 0;
   const checks = {
     length: pwd.length >= 8,
@@ -47,11 +49,11 @@ export const getPasswordStrength = (pwd) => {
 
   let label = 'Muito Fraca';
   let color = '#EF4444';
-  let percent = 20;
+  let percent = 25;
 
-  if (score === 2) { label = 'Fraca'; color = '#F97316'; percent = 40; }
-  else if (score === 3) { label = 'Média'; color = '#EAB308'; percent = 65; }
-  else if (score === 4) { label = 'Forte'; color = '#22C55E'; percent = 100; }
+  if (score === 2) { label = 'Fraca'; color = '#F97316'; percent = 50; }
+  else if (score === 3) { label = 'Média'; color = '#EAB308'; percent = 75; }
+  else if (score >= 4) { label = 'Senha Forte'; color = '#22C55E'; percent = 100; }
 
   return { score, label, color, percent, checks };
 };
@@ -70,9 +72,6 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
   const [accessType, setAccessType] = useState('psychologist'); // 'psychologist' | 'patient'
   
   // 3-Step CRP & Email Security Flow State
-  // Step 1: CRP Verification
-  // Step 2: Signature Email Verification
-  // Step 3: Password Authentication
   const [loginStep, setLoginStep] = useState(1);
   const [crpInput, setCrpInput] = useState('06/123456');
   const [emailInput, setEmailInput] = useState('dra.patricia@psivisor.com.br');
@@ -87,10 +86,16 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
   const [reqEmail, setReqEmail] = useState('');
   const [reqPhone, setReqPhone] = useState('');
   const [reqPassword, setReqPassword] = useState('');
+  const [reqConfirmPassword, setReqConfirmPassword] = useState('');
+  const [showReqPassword, setShowReqPassword] = useState(false);
+  const [showReqConfirmPassword, setShowReqConfirmPassword] = useState(false);
   const [reqSuccessMsg, setReqSuccessMsg] = useState('');
 
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Password strength for signup form
+  const signupPwdStrength = getPasswordStrength(reqPassword);
 
   // Patient PIN State
   const [patientPin, setPatientPin] = useState('');
@@ -243,7 +248,22 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
   // Handle Request CRP Authorization (Signup)
   const handleRequestCrpSubmit = (e) => {
     e.preventDefault();
-    if (!reqName || !reqCrp || !reqEmail || !reqPassword) return;
+    setErrorMsg('');
+
+    if (!reqName || !reqCrp || !reqEmail || !reqPassword) {
+      setErrorMsg('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    if (reqPassword !== reqConfirmPassword) {
+      setErrorMsg('As senhas digitadas não coincidem. Digite novamente.');
+      return;
+    }
+
+    if (signupPwdStrength.score < 2) {
+      setErrorMsg('A senha escolhida é muito fraca. Crie uma senha de pelo menos 8 caracteres.');
+      return;
+    }
 
     const formattedCRP = reqCrp.toUpperCase().startsWith('CRP') ? reqCrp.toUpperCase() : `CRP ${reqCrp.toUpperCase()}`;
 
@@ -268,7 +288,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
     setPassword(reqPassword);
     setIsRequestModalOpen(false);
     setLoginStep(3);
-    setReqSuccessMsg(`O CRP ${formattedCRP} e o e-mail ${reqEmail} foram autorizados com sucesso! Insira sua senha para entrar.`);
+    setReqSuccessMsg(`O CRP ${formattedCRP} e o e-mail ${reqEmail} foram autorizados com sucesso! Sua senha de acesso foi criada.`);
   };
 
   const handlePatientPinSubmit = (e) => {
@@ -550,7 +570,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
                     onClick={() => setIsRequestModalOpen(true)}
                     style={{ background: 'none', border: 'none', color: 'var(--primary-700)', fontWeight: 700, cursor: 'pointer', padding: 0 }}
                   >
-                    ✨ Cadastrar Novo CRP / Solicitar Liberação
+                    ✨ Cadastrar Novo CRP / Criar Senha
                   </button>
 
                   <button
@@ -829,7 +849,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL: SOLICITAR LIBERAÇÃO DE CRP / CADASTRAR NOVO CRP */}
+      {/* MODAL: SOLICITAR LIBERAÇÃO DE CRP / CADASTRAR NOVO CRP E SENHA */}
       {/* ========================================================================= */}
       {isRequestModalOpen && (
         <div style={{
@@ -838,8 +858,8 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(4px)',
+          background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -849,30 +869,32 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
           <div style={{
             background: '#ffffff',
             borderRadius: 'var(--radius-lg)',
-            maxWidth: '460px',
+            maxWidth: '500px',
             width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
             padding: '1.75rem',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
             animation: 'fadeIn 0.2s ease'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ShieldCheck size={22} color="var(--primary-700)" />
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary-900)', margin: 0 }}>
-                  Cadastrar CRP de Psicóloga
+                  Cadastrar CRP & Criar Senha
                 </h3>
               </div>
               <button onClick={() => setIsRequestModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer' }}>×</button>
             </div>
 
             <p style={{ fontSize: '0.825rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
-              Preencha os dados abaixo para cadastrar seu CRP e e-mail de assinatura no PsiVisor.
+              Preencha seus dados profissionais e defina a senha para o seu CRP ter acesso ao PsiVisor.
             </p>
 
-            <form onSubmit={handleRequestCrpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <form onSubmit={handleRequestCrpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                  Nome Completo *
+                  Nome Completo da Psicóloga *
                 </label>
                 <input
                   type="text"
@@ -884,23 +906,38 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                  Número do CRP (Região/Número) *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: 06/987654"
-                  value={reqCrp}
-                  onChange={(e) => setReqCrp(e.target.value.toUpperCase())}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem', fontWeight: 700 }}
-                  required
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
+                    Número do CRP *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: 06/987654"
+                    value={reqCrp}
+                    onChange={(e) => setReqCrp(e.target.value.toUpperCase())}
+                    style={{ width: '100%', padding: '0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem', fontWeight: 700 }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
+                    Telefone / WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="(11) 99999-9999"
+                    value={reqPhone}
+                    onChange={(e) => setReqPhone(e.target.value)}
+                    style={{ width: '100%', padding: '0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem' }}
+                  />
+                </div>
               </div>
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                  E-mail da Assinatura *
+                  E-mail da Assinatura / Cadastro *
                 </label>
                 <input
                   type="email"
@@ -912,18 +949,80 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                  Crie uma Senha para a conta *
+              {/* PASSWORD CREATION WITH STRENGTH METER */}
+              <div style={{ background: 'var(--neutral-50)', border: '1px solid var(--neutral-200)', borderRadius: 'var(--radius-md)', padding: '0.875rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-900)', display: 'block', marginBottom: '4px' }}>
+                  Crie uma Senha Forte para o seu CRP *
                 </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={reqPassword}
-                  onChange={(e) => setReqPassword(e.target.value)}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem' }}
-                  required
-                />
+
+                <div style={{ position: 'relative', marginBottom: '6px' }}>
+                  <Lock size={16} color="var(--neutral-400)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type={showReqPassword ? 'text' : 'password'}
+                    placeholder="Sua senha secreta"
+                    value={reqPassword}
+                    onChange={(e) => setReqPassword(e.target.value)}
+                    style={{ width: '100%', padding: '0.625rem 2.25rem 0.625rem 2.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowReqPassword(!showReqPassword)}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                  >
+                    {showReqPassword ? <EyeOff size={16} color="var(--neutral-500)" /> : <Eye size={16} color="var(--neutral-500)" />}
+                  </button>
+                </div>
+
+                {/* Password Strength Progress Bar */}
+                {reqPassword && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', fontWeight: 700, marginBottom: '2px' }}>
+                      <span>Força da Senha:</span>
+                      <span style={{ color: signupPwdStrength.color }}>{signupPwdStrength.label}</span>
+                    </div>
+                    <div style={{ width: '100%', height: '6px', background: 'var(--neutral-200)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${signupPwdStrength.percent}%`, height: '100%', background: signupPwdStrength.color, transition: 'all 0.3s ease' }} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Confirm Password */}
+                <div>
+                  <label style={{ fontSize: '0.775rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
+                    Confirme sua Senha *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} color="var(--neutral-400)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                      type={showReqConfirmPassword ? 'text' : 'password'}
+                      placeholder="Repita a mesma senha"
+                      value={reqConfirmPassword}
+                      onChange={(e) => setReqConfirmPassword(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.625rem 2.25rem 0.625rem 2.25rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: reqConfirmPassword && reqConfirmPassword !== reqPassword ? '1.5px solid #EF4444' : '1px solid var(--neutral-300)',
+                        fontSize: '0.875rem'
+                      }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowReqConfirmPassword(!showReqConfirmPassword)}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                    >
+                      {showReqConfirmPassword ? <EyeOff size={16} color="var(--neutral-500)" /> : <Eye size={16} color="var(--neutral-500)" />}
+                    </button>
+                  </div>
+
+                  {reqConfirmPassword && reqConfirmPassword !== reqPassword && (
+                    <span style={{ fontSize: '0.725rem', color: '#EF4444', fontWeight: 600, display: 'block', marginTop: '2px' }}>
+                      ⚠️ As senhas digitadas não coincidem.
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -939,9 +1038,10 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  style={{ flex: 1.5, fontWeight: 700 }}
+                  disabled={Boolean(reqConfirmPassword && reqConfirmPassword !== reqPassword)}
+                  style={{ flex: 1.5, fontWeight: 800 }}
                 >
-                  Liberar Meu CRP
+                  Salvar Senha & Liberar CRP
                 </button>
               </div>
             </form>

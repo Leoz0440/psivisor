@@ -530,21 +530,13 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
                   Verificar CRP <ArrowRight size={16} />
                 </button>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.8rem' }}>
                   <button
                     type="button"
                     onClick={() => setIsSubscriptionModalOpen(true)}
                     style={{ background: 'none', border: 'none', color: 'var(--primary-700)', fontWeight: 700, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
                     <CreditCard size={14} /> Assinar Plano / Liberar Novo CRP
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleDemoPsychologistLogin}
-                    style={{ background: 'none', border: 'none', color: 'var(--neutral-500)', fontSize: '0.75rem', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
-                  >
-                    Entrar como Demo
                   </button>
                 </div>
               </form>
@@ -766,25 +758,6 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
               style={{ width: '100%', padding: '0.85rem', marginTop: '0.25rem', fontWeight: 800, fontSize: '0.95rem' }}
             >
               Acessar Meu Portal <ArrowRight size={16} />
-            </button>
-
-            {/* Quick Patient Demo Button */}
-            <button
-              type="button"
-              onClick={handleDemoPatientLogin}
-              style={{
-                background: 'var(--neutral-100)',
-                color: 'var(--primary-800)',
-                border: '1px dashed var(--primary-300)',
-                padding: '0.625rem',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                textAlign: 'center'
-              }}
-            >
-              ⚡ Testar Acesso da Paciente Mariana Silva (PIN: MARI4829)
             </button>
           </form>
         )}

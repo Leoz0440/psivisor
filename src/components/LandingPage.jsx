@@ -222,12 +222,12 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
                 transition: 'transform 0.2s ease'
               }}
             >
-              🚀 Começar Teste Grátis de 14 Dias
+              🚀 Testar 14 Dias Grátis
               <ArrowRight size={18} />
             </button>
 
             <button
-              onClick={onGoToDemo}
+              onClick={onGoToLogin}
               style={{
                 background: 'rgba(255, 255, 255, 0.08)',
                 color: '#ffffff',
@@ -242,8 +242,8 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
                 gap: '8px'
               }}
             >
-              <Eye size={18} color="#8FA998" />
-              Ver Demonstração ao Vivo
+              <Key size={18} color="#8FA998" />
+              Fazer Login no Sistema
             </button>
           </div>
 

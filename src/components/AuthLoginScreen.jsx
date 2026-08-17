@@ -28,10 +28,14 @@ import { generatePatientPin } from '../services/psychologyService';
 import SubscriptionModal from './SubscriptionModal';
 
 export const validateCRP = (crp) => {
-  if (!crp) return false;
+  if (!crp || !crp.trim()) return { isValid: false, reason: 'Por favor, informe o número do CRP (Ex: 08/44490).' };
   const cleanCRP = crp.toUpperCase().replace(/\s+/g, '');
   const crpRegex = /^(CRP)?\d{2}\/\d{4,6}$/;
-  return crpRegex.test(cleanCRP) || crpRegex.test(`CRP${cleanCRP}`);
+  const isValid = crpRegex.test(cleanCRP) || crpRegex.test(`CRP${cleanCRP}`);
+  return {
+    isValid,
+    reason: isValid ? '' : 'Formato de CRP aceito é Região/Número (Ex: 08/44490 ou 06/123456).'
+  };
 };
 
 export const getPasswordStrength = (pwd) => {

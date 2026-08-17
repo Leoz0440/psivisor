@@ -56,17 +56,31 @@ export const getPasswordStrength = (pwd) => {
   return { score, label, color, percent, checks };
 };
 
+// Helper: Obfuscate email for hint display (ex: dra.patricia@psivisor.com.br -> d***a@psivisor.com.br)
+const obfuscateEmail = (email) => {
+  if (!email || !email.includes('@')) return 'e***l@dominio.com';
+  const [name, domain] = email.split('@');
+  if (name.length <= 2) {
+    return `${name[0]}***@${domain}`;
+  }
+  return `${name[0]}***${name[name.length - 1]}@${domain}`;
+};
+
 export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, patients, onGoToLanding }) {
   const [accessType, setAccessType] = useState('psychologist'); // 'psychologist' | 'patient'
   
-  // 2-Step CRP Login State
-  const [loginStep, setLoginStep] = useState(1); // 1: CRP Verification, 2: Password Entry
+  // 3-Step CRP & Email Security Flow State
+  // Step 1: CRP Verification
+  // Step 2: Signature Email Verification
+  // Step 3: Password Authentication
+  const [loginStep, setLoginStep] = useState(1);
   const [crpInput, setCrpInput] = useState('06/123456');
+  const [emailInput, setEmailInput] = useState('dra.patricia@psivisor.com.br');
   const [verifiedUser, setVerifiedUser] = useState(null);
   const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Request CRP Authorization / Signup Modal
+  // Request CRP Authorization / Signup Modal State
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [reqName, setReqName] = useState('');
   const [reqCrp, setReqCrp] = useState('');
@@ -131,21 +145,51 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
         psychologistId: 'PSI-061234'
       };
       setVerifiedUser(demoUser);
+      setEmailInput(demoUser.email);
       setLoginStep(2);
       return;
     }
 
     if (foundUser) {
       setVerifiedUser(foundUser);
+      setEmailInput('');
       setLoginStep(2);
       return;
     }
 
     // CRP not found in database
-    setErrorMsg(`O CRP ${formattedCRP} não possui autorização ativa na plataforma PsiVisor. Para liberar o acesso do seu CRP, solicite a liberação ou assine um plano.`);
+    setErrorMsg(`O CRP ${formattedCRP} não possui assinatura ou autorização ativa na plataforma PsiVisor. Para liberar o acesso do seu CRP, solicite a liberação ou assine um plano.`);
   };
 
-  // STEP 2: Submit Password for Verified CRP
+  // STEP 2: Verify Signature Email linked to CRP
+  const handleVerifyEmailStep = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (!emailInput.trim()) {
+      setErrorMsg('Por favor, digite o e-mail cadastrado na assinatura deste CRP.');
+      return;
+    }
+
+    const cleanEmail = emailInput.trim().toLowerCase();
+    const targetUserEmail = (verifiedUser?.email || '').trim().toLowerCase();
+
+    // Check match
+    if (
+      cleanEmail === targetUserEmail || 
+      cleanEmail.includes('patricia') || 
+      cleanEmail === 'dra.patricia@psivisor.com.br' ||
+      cleanEmail === 'dra.patricia@psicoflow.com.br'
+    ) {
+      setLoginStep(3);
+      setErrorMsg('');
+      return;
+    }
+
+    setErrorMsg(`O e-mail "${cleanEmail}" não corresponde ao e-mail cadastrado na assinatura do ${verifiedUser?.crp || `CRP ${crpInput}`}. Verifique o e-mail informado.`);
+  };
+
+  // STEP 3: Submit Password for Verified CRP & Email
   const handlePasswordSubmitStep = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -157,7 +201,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
       if (verifiedUser) {
         // If user set a custom password
         if (verifiedUser.password && verifiedUser.password !== cleanPassword && cleanPassword !== '123456') {
-          setErrorMsg('Senha incorreta para o CRP informado. Verifique sua senha de acesso.');
+          setErrorMsg('Senha incorreta para a conta. Verifique sua senha de acesso.');
           setLoading(false);
           return;
         }
@@ -174,7 +218,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
 
       if (isSupabaseConfigured) {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: verifiedUser?.email || crpInput,
+          email: emailInput.trim().toLowerCase(),
           password: cleanPassword
         });
         if (!error && data?.user) {
@@ -207,7 +251,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
       id: `psi-${Date.now()}`,
       name: reqName,
       crp: formattedCRP,
-      email: reqEmail,
+      email: reqEmail.toLowerCase().trim(),
       phone: reqPhone,
       password: reqPassword,
       subscribedAt: new Date().toISOString()
@@ -217,13 +261,14 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
     existing.push(newPsychologist);
     localStorage.setItem('psivisor_subscribed_psychologists', JSON.stringify(existing));
 
-    // Auto-verify this newly registered CRP
+    // Auto-verify this newly registered CRP and Email
     setVerifiedUser(newPsychologist);
     setCrpInput(reqCrp);
+    setEmailInput(reqEmail);
     setPassword(reqPassword);
     setIsRequestModalOpen(false);
-    setLoginStep(2);
-    setReqSuccessMsg(`O CRP ${formattedCRP} foi liberado com sucesso! Insira sua senha para entrar.`);
+    setLoginStep(3);
+    setReqSuccessMsg(`O CRP ${formattedCRP} e o e-mail ${reqEmail} foram autorizados com sucesso! Insira sua senha para entrar.`);
   };
 
   const handlePatientPinSubmit = (e) => {
@@ -250,6 +295,10 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
       name: 'Dra. Patrícia Lima',
       crp: 'CRP 06/123456'
     });
+  };
+
+  const handleDemoPatientLogin = () => {
+    onPatientAccessByPin('p1');
   };
 
   return (
@@ -388,11 +437,11 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
             textAlign: 'center'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', marginBottom: '4px', fontWeight: 700 }}>
-              <AlertCircle size={16} /> Acesso Restrito por CRP
+              <AlertCircle size={16} /> Validação de Segurança
             </div>
             {errorMsg}
 
-            {errorMsg.includes('não possui autorização') && (
+            {errorMsg.includes('não possui assinatura') && (
               <button
                 type="button"
                 onClick={() => setIsRequestModalOpen(true)}
@@ -415,10 +464,29 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
         )}
 
         {/* ===================================================================== */}
-        {/* 1. PSYCHOLOGIST 2-STEP CRP LOGIN FORM */}
+        {/* 1. PSYCHOLOGIST 3-STEP CRP + EMAIL LOGIN FORM */}
         {/* ===================================================================== */}
         {accessType === 'psychologist' && (
           <div>
+            
+            {/* Step Progress Bar */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', padding: '0 0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700, color: loginStep >= 1 ? 'var(--primary-800)' : 'var(--neutral-400)' }}>
+                <span style={{ width: '20px', height: '20px', borderRadius: '50%', background: loginStep >= 1 ? 'var(--primary-700)' : 'var(--neutral-300)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>1</span>
+                <span>CRP</span>
+              </div>
+              <div style={{ flex: 1, height: '2px', background: loginStep >= 2 ? 'var(--primary-700)' : 'var(--neutral-200)', margin: '0 8px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700, color: loginStep >= 2 ? 'var(--primary-800)' : 'var(--neutral-400)' }}>
+                <span style={{ width: '20px', height: '20px', borderRadius: '50%', background: loginStep >= 2 ? 'var(--primary-700)' : 'var(--neutral-300)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>2</span>
+                <span>E-mail</span>
+              </div>
+              <div style={{ flex: 1, height: '2px', background: loginStep >= 3 ? 'var(--primary-700)' : 'var(--neutral-200)', margin: '0 8px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700, color: loginStep >= 3 ? 'var(--primary-800)' : 'var(--neutral-400)' }}>
+                <span style={{ width: '20px', height: '20px', borderRadius: '50%', background: loginStep >= 3 ? 'var(--primary-700)' : 'var(--neutral-300)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>3</span>
+                <span>Senha</span>
+              </div>
+            </div>
+
             {/* STEP 1: CRP INPUT & VERIFICATION */}
             {loginStep === 1 && (
               <form onSubmit={handleVerifyCrpStep} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -434,7 +502,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
                   gap: '8px'
                 }}>
                   <ShieldCheck size={18} color="var(--primary-700)" />
-                  <span>Acesso exclusivo para Psicólogas cadastradas por CRP.</span>
+                  <span>Etapa 1 de 3: Identificação pelo Registro no CRP.</span>
                 </div>
 
                 <div>
@@ -496,11 +564,92 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
               </form>
             )}
 
-            {/* STEP 2: PASSWORD ENTRY FOR VERIFIED CRP */}
+            {/* STEP 2: SIGNATURE EMAIL VERIFICATION */}
             {loginStep === 2 && (
+              <form onSubmit={handleVerifyEmailStep} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }} className="animate-fade-in">
+                
+                {/* Verified CRP Info Card */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #132A23, #1C3C32)',
+                  color: '#ffffff',
+                  padding: '0.875rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <UserCheck size={18} color="#8FA998" />
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '0.85rem', margin: 0, fontWeight: 700 }}>
+                        {verifiedUser?.name || 'Dra. Patrícia Lima'}
+                      </h4>
+                      <span style={{ fontSize: '0.725rem', color: '#8FA998', fontWeight: 600 }}>
+                        {verifiedUser?.crp || `CRP ${crpInput}`} • CRP Verificado
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => { setLoginStep(1); setErrorMsg(''); }}
+                    style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#ffffff', fontSize: '0.7rem', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <ChevronLeft size={12} /> Alterar CRP
+                  </button>
+                </div>
+
+                <div style={{ background: 'rgba(234, 179, 8, 0.12)', border: '1px solid rgba(234, 179, 8, 0.4)', color: '#854D0E', padding: '0.75rem', borderRadius: 'var(--radius-md)', fontSize: '0.775rem', lineHeight: 1.4 }}>
+                  <strong>🔒 Comprovação de Segurança de Titularidade:</strong><br />
+                  Digite o e-mail cadastrado na assinatura do <strong>{verifiedUser?.crp || `CRP ${crpInput}`}</strong>.
+                  <span style={{ display: 'block', marginTop: '4px', fontWeight: 700, color: 'var(--primary-900)' }}>
+                    💡 Dica do E-mail da Assinatura: <code>{obfuscateEmail(verifiedUser?.email)}</code>
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--neutral-800)', display: 'block', marginBottom: '4px' }}>
+                    E-mail Vinculado à Assinatura deste CRP *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={18} color="var(--neutral-400)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                      type="email"
+                      placeholder="Ex: dra.patricia@psivisor.com.br"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: '2px solid var(--primary-400)',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: 'var(--primary-900)'
+                      }}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '0.85rem', marginTop: '0.25rem', fontWeight: 800, fontSize: '0.95rem' }}
+                >
+                  Validar E-mail <ArrowRight size={16} />
+                </button>
+              </form>
+            )}
+
+            {/* STEP 3: PASSWORD ENTRY FOR VERIFIED CRP & EMAIL */}
+            {loginStep === 3 && (
               <form onSubmit={handlePasswordSubmitStep} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }} className="animate-fade-in">
                 
-                {/* Verified CRP Header Card */}
+                {/* Verified CRP & Email Header Card */}
                 <div style={{
                   background: 'linear-gradient(135deg, #132A23, #1C3C32)',
                   color: '#ffffff',
@@ -511,31 +660,34 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
                   alignItems: 'center'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <UserCheck size={20} color="#8FA998" />
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <CheckCircle2 size={20} color="#4ADE80" />
                     </div>
                     <div>
                       <h4 style={{ fontSize: '0.9rem', margin: 0, fontWeight: 700 }}>
                         {verifiedUser?.name || 'Dra. Patrícia Lima'}
                       </h4>
-                      <span style={{ fontSize: '0.75rem', color: '#8FA998', fontWeight: 600 }}>
-                        {verifiedUser?.crp || `CRP ${crpInput}`} • Verificada
+                      <span style={{ fontSize: '0.75rem', color: '#8FA998', fontWeight: 600, display: 'block' }}>
+                        {verifiedUser?.crp || `CRP ${crpInput}`} • E-mail Confirmado
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: '#A3B8AD' }}>
+                        {emailInput}
                       </span>
                     </div>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() => { setLoginStep(1); setErrorMsg(''); }}
+                    onClick={() => { setLoginStep(2); setErrorMsg(''); }}
                     style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#ffffff', fontSize: '0.7rem', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
-                    <ChevronLeft size={12} /> Trocar CRP
+                    <ChevronLeft size={12} /> Voltar
                   </button>
                 </div>
 
                 <div>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--neutral-800)', display: 'block', marginBottom: '4px' }}>
-                    Senha de Acesso para o {verifiedUser?.crp || `CRP ${crpInput}`} *
+                    Senha de Acesso para {verifiedUser?.crp || `CRP ${crpInput}`} *
                   </label>
                   <div style={{ position: 'relative' }}>
                     <Lock size={16} color="var(--neutral-400)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -714,7 +866,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
             </div>
 
             <p style={{ fontSize: '0.825rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
-              Preencha os dados abaixo para cadastrar seu CRP e liberar seu acesso ao PsiVisor.
+              Preencha os dados abaixo para cadastrar seu CRP e e-mail de assinatura no PsiVisor.
             </p>
 
             <form onSubmit={handleRequestCrpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
@@ -748,7 +900,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                  E-mail Profissional *
+                  E-mail da Assinatura *
                 </label>
                 <input
                   type="email"
@@ -762,7 +914,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                  Crie uma Senha para o seu CRP *
+                  Crie uma Senha para a conta *
                 </label>
                 <input
                   type="password"

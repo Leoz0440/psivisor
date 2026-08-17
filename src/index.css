@@ -273,3 +273,90 @@ h1, h2, h3, h4, h5, h6 {
 .pulse-glow {
   animation: pulseGlow 2s infinite;
 }
+
+/* Mobile Responsive Media Queries */
+@media (max-width: 992px) {
+  .sidebar {
+    width: 220px;
+  }
+  .main-content {
+    margin-left: 220px;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 1rem;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 1rem;
+    width: 100%;
+  }
+
+  header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.875rem !important;
+  }
+
+  header > div {
+    width: 100%;
+  }
+
+  header input {
+    min-width: 100% !important;
+  }
+
+  /* Responsive Grids */
+  .grid-responsive-1 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Scrollable tables and tabs */
+  .table-responsive-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nav-tabs-responsive {
+    overflow-x: auto;
+    white-space: nowrap;
+    display: flex;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modals full width on mobile */
+  .modal-mobile-full {
+    width: 96% !important;
+    max-width: 100% !important;
+    margin: 0.5rem auto !important;
+    padding: 1.25rem !important;
+    max-height: 92vh !important;
+  }
+
+  .sidebar nav, .sidebar > div:last-child {
+    display: none;
+  }
+  .sidebar.mobile-open nav, .sidebar.mobile-open > div:last-child {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only-btn {
+    display: none !important;
+  }
+}
+

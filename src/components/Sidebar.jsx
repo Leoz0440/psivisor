@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, patientMode, setPatientMode, psychologistProfile, isAnonMode, onToggleAnonMode }) {
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'patients', label: 'Prontuários & Pacientes', icon: Users },
@@ -22,29 +24,48 @@ export default function Sidebar({ activeTab, setActiveTab, patientMode, setPatie
   ];
 
   return (
-    <aside className="sidebar">
-      {/* Brand Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2rem', padding: '0 0.5rem' }}>
-        <img
-          src="/psivisor_logo_concept_1.jpg"
-          alt="PsiVisor Logo"
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            objectFit: 'cover',
-            border: '2px solid rgba(255, 255, 255, 0.4)',
-            boxShadow: 'var(--shadow-glow)'
-          }}
-        />
-        <div>
-          <h1 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>
-            PsiVisor
-          </h1>
-          <span style={{ fontSize: '0.7rem', color: 'var(--primary-300)', display: 'block', marginTop: '-2px' }}>
-            Prontuários & Gestão Clínica
-          </span>
+    <aside className={`sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
+      {/* Brand Header with Mobile Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img
+            src="/psivisor_logo_concept_1.jpg"
+            alt="PsiVisor Logo"
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '2px solid rgba(255, 255, 255, 0.4)',
+              boxShadow: 'var(--shadow-glow)'
+            }}
+          />
+          <div>
+            <h1 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>
+              PsiVisor
+            </h1>
+            <span style={{ fontSize: '0.7rem', color: 'var(--primary-300)', display: 'block', marginTop: '-2px' }}>
+              Prontuários & Gestão Clínica
+            </span>
+          </div>
         </div>
+
+        {/* Mobile Hamburger Toggle */}
+        <button
+          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: 'none',
+            color: '#ffffff',
+            padding: '6px 10px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '1.1rem'
+          }}
+          className="mobile-only-btn"
+        >
+          {isMobileOpen ? '✕' : '☰'}
+        </button>
       </div>
 
       {/* Navigation Items */}

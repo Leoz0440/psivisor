@@ -38,7 +38,7 @@ export default function App() {
   const [isAnonMode, setIsAnonMode] = useState(false);
   
   // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authenticatedUser, setAuthenticatedUser] = useState(psychologistProfile);
 
   // Dark Theme State

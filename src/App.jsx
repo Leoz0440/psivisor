@@ -26,6 +26,7 @@ import NotificationsModal from './components/NotificationsModal';
 import AnamnesisModal from './components/AnamnesisModal';
 import LandingPage from './components/LandingPage';
 import SubscriptionModal from './components/SubscriptionModal';
+import MobileBottomNav from './components/MobileBottomNav';
 
 import { psychologistProfile, initialAppointments, activityTemplates } from './data/mockData';
 import { psychologyService, setPsychologistContext } from './services/psychologyService';
@@ -443,7 +444,7 @@ export default function App() {
         )}
 
         {/* Supabase Status Banner & Logout */}
-        <div style={{
+        <div className="mobile-hide-banner" style={{
           background: isSupabaseConfigured ? 'rgba(44, 94, 78, 0.08)' : 'rgba(234, 179, 8, 0.12)',
           border: isSupabaseConfigured ? '1px solid var(--primary-300)' : '1px solid var(--accent-amber)',
           borderRadius: 'var(--radius-md)',
@@ -717,6 +718,13 @@ VITE_SUPABASE_ANON_KEY=sua-chave-anonima-aqui`}
         patient={anamnesisPatientTarget}
         onSaveAnamnesis={handleSaveAnamnesis}
         initialModelType={anamnesisInitialModel}
+      />
+
+      {/* Mobile Bottom Navigation Bar */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        setPatientMode={setPatientMode}
       />
     </div>
   );

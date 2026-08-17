@@ -301,24 +301,37 @@ h1, h2, h3, h4, h5, h6 {
     flex-direction: column !important;
   }
 
+  /* Hide left sidebar on mobile since MobileBottomNav handles navigation */
   .sidebar, .sidebar.collapsed {
-    width: 100% !important;
-    height: auto !important;
-    position: relative !important;
-    padding: 0.75rem 1rem !important;
+    display: none !important;
   }
 
   .main-content, .main-content.collapsed {
     margin-left: 0 !important;
-    padding: 1rem 0.875rem !important;
+    padding: 1rem 0.875rem 5.5rem !important;
     width: 100% !important;
     max-width: 100% !important;
   }
 
   header {
-    flex-direction: column;
-    align-items: stretch !important;
-    gap: 0.875rem !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justifyContent: space-between !important;
+    margin-bottom: 1.25rem !important;
+    gap: 0.5rem !important;
+  }
+
+  header p, header .badge {
+    display: none !important;
+  }
+
+  header h2 {
+    font-size: 1.35rem !important;
+  }
+
+  /* Hide yellow Supabase banner clutter on mobile */
+  .mobile-hide-banner {
+    display: none !important;
   }
 
   header > div {

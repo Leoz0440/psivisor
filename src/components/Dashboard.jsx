@@ -87,7 +87,7 @@ export default function Dashboard({
       </div>
 
       {/* Main Grid: Agenda do Dia + Birthday Widget & Respostas dos Pacientes */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem' }}>
+      <div className="grid-responsive-1" style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem' }}>
         
         {/* Today's Appointments Table */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

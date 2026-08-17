@@ -149,7 +149,7 @@ export default function PatientsView({
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.5rem', minHeight: '750px' }}>
+    <div className="animate-fade-in grid-responsive-1" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.5rem', minHeight: '750px' }}>
       
       {/* Left Column: Patient Selector List */}
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem' }}>

@@ -47,7 +47,7 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
       {/* ========================================================================= */}
       {/* 1. TOP NAVBAR */}
       {/* ========================================================================= */}
-      <nav style={{
+      <nav className="landing-nav" style={{
         position: 'sticky',
         top: 0,
         zIndex: 1000,
@@ -87,8 +87,8 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }} className="desktop-only">
+          {/* Navigation Links (Desktop Only) */}
+          <div style={{ gap: '2rem', flexWrap: 'wrap' }} className="desktop-only">
             <button onClick={() => scrollToSection('features')} style={{ background: 'none', border: 'none', color: '#CBD5E1', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer' }}>Recursos</button>
             <button onClick={() => scrollToSection('anamnesis')} style={{ background: 'none', border: 'none', color: '#CBD5E1', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer' }}>Anamnese</button>
             <button onClick={() => scrollToSection('patient-portal')} style={{ background: 'none', border: 'none', color: '#CBD5E1', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer' }}>Portal do Paciente</button>
@@ -97,19 +97,20 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
           </div>
 
           {/* Action CTAs */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               onClick={onGoToLogin}
               style={{
                 background: 'transparent',
                 color: '#ffffff',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
-                padding: '0.6rem 1.25rem',
+                padding: '0.5rem 0.875rem',
                 borderRadius: '8px',
                 fontWeight: 600,
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                whiteSpace: 'nowrap'
               }}
             >
               Fazer Login
@@ -121,18 +122,19 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
                 background: 'linear-gradient(135deg, #4B9B82, #2C5E4E)',
                 color: '#ffffff',
                 border: 'none',
-                padding: '0.6rem 1.25rem',
+                padding: '0.5rem 0.875rem',
                 borderRadius: '8px',
                 fontWeight: 700,
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 cursor: 'pointer',
                 boxShadow: '0 4px 14px rgba(75, 155, 130, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '4px',
+                whiteSpace: 'nowrap'
               }}
             >
-              <Zap size={16} /> Testar 14 Dias Grátis
+              <Zap size={14} /> 14 Dias Grátis
             </button>
           </div>
         </div>
@@ -141,8 +143,8 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
       {/* ========================================================================= */}
       {/* 2. HERO SECTION */}
       {/* ========================================================================= */}
-      <section style={{
-        padding: '5rem 1.5rem 4rem',
+      <section className="landing-hero-section" style={{
+        padding: '4rem 1.5rem 3.5rem',
         maxWidth: '1200px',
         margin: '0 auto',
         textAlign: 'center',
@@ -179,10 +181,10 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
             A Plataforma Definitiva para Psicólogas no Brasil
           </div>
 
-          <h1 style={{
+          <h1 className="landing-hero-title" style={{
             fontSize: '3.2rem',
             fontWeight: 900,
-            lineHeight: 1.15,
+            lineHeight: 1.18,
             letterSpacing: '-1px',
             maxWidth: '900px',
             margin: '0 auto 1.25rem',
@@ -203,7 +205,7 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
             O <strong>PsiVisor</strong> combina o sigilo ético exigido pelo CFP e pela LGPD com ferramentas interativas que aproximam o paciente do tratamento e economizam até 70% do seu tempo de gestão.
           </p>
 
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
+          <div className="landing-cta-container" style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
             <button
               onClick={onGoToLogin}
               style={{
@@ -218,6 +220,7 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
                 boxShadow: '0 10px 25px rgba(75, 155, 130, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '8px',
                 transition: 'transform 0.2s ease'
               }}
@@ -239,6 +242,7 @@ export default function LandingPage({ onGoToLogin, onGoToDemo, onSelectPlan, onO
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '8px'
               }}
             >

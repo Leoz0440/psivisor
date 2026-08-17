@@ -19,10 +19,13 @@ import {
   RefreshCw,
   ChevronLeft,
   Check,
-  X
+  X,
+  CreditCard,
+  Zap
 } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { generatePatientPin } from '../services/psychologyService';
+import SubscriptionModal from './SubscriptionModal';
 
 export const validateCRP = (crp) => {
   if (!crp) return false;
@@ -79,23 +82,12 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
   const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Request CRP Authorization / Signup Modal State
-  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-  const [reqName, setReqName] = useState('');
-  const [reqCrp, setReqCrp] = useState('');
-  const [reqEmail, setReqEmail] = useState('');
-  const [reqPhone, setReqPhone] = useState('');
-  const [reqPassword, setReqPassword] = useState('');
-  const [reqConfirmPassword, setReqConfirmPassword] = useState('');
-  const [showReqPassword, setShowReqPassword] = useState(false);
-  const [showReqConfirmPassword, setShowReqConfirmPassword] = useState(false);
+  // Subscription Modal State (Forces Plan Selection before CRP registration)
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [reqSuccessMsg, setReqSuccessMsg] = useState('');
 
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Password strength for signup form
-  const signupPwdStrength = getPasswordStrength(reqPassword);
 
   // Patient PIN State
   const [patientPin, setPatientPin] = useState('');
@@ -163,7 +155,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
     }
 
     // CRP not found in database
-    setErrorMsg(`O CRP ${formattedCRP} não possui assinatura ou autorização ativa na plataforma PsiVisor. Para liberar o acesso do seu CRP, solicite a liberação ou assine um plano.`);
+    setErrorMsg(`O CRP ${formattedCRP} não possui assinatura ativa no PsiVisor. É necessário assinar um plano ou ativar a Degustação de 14 dias para cadastrar e liberar o seu CRP.`);
   };
 
   // STEP 2: Verify Signature Email linked to CRP
@@ -245,50 +237,17 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
     }
   };
 
-  // Handle Request CRP Authorization (Signup)
-  const handleRequestCrpSubmit = (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-
-    if (!reqName || !reqCrp || !reqEmail || !reqPassword) {
-      setErrorMsg('Por favor, preencha todos os campos obrigatórios.');
-      return;
+  // Callback when Subscription & CRP Registration is completed
+  const handleSubscriptionComplete = (newPsychologist) => {
+    setIsSubscriptionModalOpen(false);
+    if (newPsychologist) {
+      setVerifiedUser(newPsychologist);
+      setCrpInput(newPsychologist.crp.replace(/^CRP\s*/, ''));
+      setEmailInput(newPsychologist.email);
+      setPassword(newPsychologist.password || '123456');
+      setLoginStep(3);
+      setReqSuccessMsg(`Assinatura ativada com sucesso para a ${newPsychologist.name} (${newPsychologist.crp})! Insira sua senha para entrar.`);
     }
-
-    if (reqPassword !== reqConfirmPassword) {
-      setErrorMsg('As senhas digitadas não coincidem. Digite novamente.');
-      return;
-    }
-
-    if (signupPwdStrength.score < 2) {
-      setErrorMsg('A senha escolhida é muito fraca. Crie uma senha de pelo menos 8 caracteres.');
-      return;
-    }
-
-    const formattedCRP = reqCrp.toUpperCase().startsWith('CRP') ? reqCrp.toUpperCase() : `CRP ${reqCrp.toUpperCase()}`;
-
-    const newPsychologist = {
-      id: `psi-${Date.now()}`,
-      name: reqName,
-      crp: formattedCRP,
-      email: reqEmail.toLowerCase().trim(),
-      phone: reqPhone,
-      password: reqPassword,
-      subscribedAt: new Date().toISOString()
-    };
-
-    const existing = JSON.parse(localStorage.getItem('psivisor_subscribed_psychologists') || '[]');
-    existing.push(newPsychologist);
-    localStorage.setItem('psivisor_subscribed_psychologists', JSON.stringify(existing));
-
-    // Auto-verify this newly registered CRP and Email
-    setVerifiedUser(newPsychologist);
-    setCrpInput(reqCrp);
-    setEmailInput(reqEmail);
-    setPassword(reqPassword);
-    setIsRequestModalOpen(false);
-    setLoginStep(3);
-    setReqSuccessMsg(`O CRP ${formattedCRP} e o e-mail ${reqEmail} foram autorizados com sucesso! Sua senha de acesso foi criada.`);
   };
 
   const handlePatientPinSubmit = (e) => {
@@ -457,27 +416,30 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
             textAlign: 'center'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', marginBottom: '4px', fontWeight: 700 }}>
-              <AlertCircle size={16} /> Validação de Segurança
+              <AlertCircle size={16} /> Validação de Assinatura por CRP
             </div>
             {errorMsg}
 
             {errorMsg.includes('não possui assinatura') && (
               <button
                 type="button"
-                onClick={() => setIsRequestModalOpen(true)}
+                onClick={() => setIsSubscriptionModalOpen(true)}
                 style={{
                   marginTop: '8px',
                   background: 'var(--primary-700)',
                   color: '#ffffff',
                   border: 'none',
-                  padding: '6px 12px',
+                  padding: '8px 16px',
                   borderRadius: '6px',
-                  fontSize: '0.775rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                ✨ Solicitar Liberação do Meu CRP
+                <Zap size={14} /> Assinar Plano / Degustação 14 Dias Grátis
               </button>
             )}
           </div>
@@ -527,7 +489,7 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
 
                 <div>
                   <label style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--neutral-800)', display: 'block', marginBottom: '4px' }}>
-                    Número do seu CRP (ID Único) *
+                    Número do seu CRP (ID Único de Assinante) *
                   </label>
                   <div style={{ position: 'relative' }}>
                     <ShieldCheck size={18} color="var(--neutral-400)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -567,10 +529,10 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.8rem' }}>
                   <button
                     type="button"
-                    onClick={() => setIsRequestModalOpen(true)}
-                    style={{ background: 'none', border: 'none', color: 'var(--primary-700)', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                    onClick={() => setIsSubscriptionModalOpen(true)}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary-700)', fontWeight: 700, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
-                    ✨ Cadastrar Novo CRP / Criar Senha
+                    <CreditCard size={14} /> Assinar Plano / Liberar Novo CRP
                   </button>
 
                   <button
@@ -849,205 +811,14 @@ export default function AuthLoginScreen({ onLoginSuccess, onPatientAccessByPin, 
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL: SOLICITAR LIBERAÇÃO DE CRP / CADASTRAR NOVO CRP E SENHA */}
+      {/* SUBSCRIPTION MODAL (MANDATORY BEFORE REGISTERING A NEW CRP) */}
       {/* ========================================================================= */}
-      {isRequestModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          padding: '1.5rem'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: 'var(--radius-lg)',
-            maxWidth: '500px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '1.75rem',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
-            animation: 'fadeIn 0.2s ease'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ShieldCheck size={22} color="var(--primary-700)" />
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary-900)', margin: 0 }}>
-                  Cadastrar CRP & Criar Senha
-                </h3>
-              </div>
-              <button onClick={() => setIsRequestModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer' }}>×</button>
-            </div>
-
-            <p style={{ fontSize: '0.825rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
-              Preencha seus dados profissionais e defina a senha para o seu CRP ter acesso ao PsiVisor.
-            </p>
-
-            <form onSubmit={handleRequestCrpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                  Nome Completo da Psicóloga *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Dra. Juliana Mendes"
-                  value={reqName}
-                  onChange={(e) => setReqName(e.target.value)}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem' }}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                    Número do CRP *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: 06/987654"
-                    value={reqCrp}
-                    onChange={(e) => setReqCrp(e.target.value.toUpperCase())}
-                    style={{ width: '100%', padding: '0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem', fontWeight: 700 }}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                    Telefone / WhatsApp
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="(11) 99999-9999"
-                    value={reqPhone}
-                    onChange={(e) => setReqPhone(e.target.value)}
-                    style={{ width: '100%', padding: '0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                  E-mail da Assinatura / Cadastro *
-                </label>
-                <input
-                  type="email"
-                  placeholder="juliana@exemplo.com.br"
-                  value={reqEmail}
-                  onChange={(e) => setReqEmail(e.target.value)}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem' }}
-                  required
-                />
-              </div>
-
-              {/* PASSWORD CREATION WITH STRENGTH METER */}
-              <div style={{ background: 'var(--neutral-50)', border: '1px solid var(--neutral-200)', borderRadius: 'var(--radius-md)', padding: '0.875rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary-900)', display: 'block', marginBottom: '4px' }}>
-                  Crie uma Senha Forte para o seu CRP *
-                </label>
-
-                <div style={{ position: 'relative', marginBottom: '6px' }}>
-                  <Lock size={16} color="var(--neutral-400)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                  <input
-                    type={showReqPassword ? 'text' : 'password'}
-                    placeholder="Sua senha secreta"
-                    value={reqPassword}
-                    onChange={(e) => setReqPassword(e.target.value)}
-                    style={{ width: '100%', padding: '0.625rem 2.25rem 0.625rem 2.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-300)', fontSize: '0.875rem' }}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowReqPassword(!showReqPassword)}
-                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer' }}
-                  >
-                    {showReqPassword ? <EyeOff size={16} color="var(--neutral-500)" /> : <Eye size={16} color="var(--neutral-500)" />}
-                  </button>
-                </div>
-
-                {/* Password Strength Progress Bar */}
-                {reqPassword && (
-                  <div style={{ marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', fontWeight: 700, marginBottom: '2px' }}>
-                      <span>Força da Senha:</span>
-                      <span style={{ color: signupPwdStrength.color }}>{signupPwdStrength.label}</span>
-                    </div>
-                    <div style={{ width: '100%', height: '6px', background: 'var(--neutral-200)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${signupPwdStrength.percent}%`, height: '100%', background: signupPwdStrength.color, transition: 'all 0.3s ease' }} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Confirm Password */}
-                <div>
-                  <label style={{ fontSize: '0.775rem', fontWeight: 600, color: 'var(--neutral-700)', display: 'block', marginBottom: '3px' }}>
-                    Confirme sua Senha *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={16} color="var(--neutral-400)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                    <input
-                      type={showReqConfirmPassword ? 'text' : 'password'}
-                      placeholder="Repita a mesma senha"
-                      value={reqConfirmPassword}
-                      onChange={(e) => setReqConfirmPassword(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.625rem 2.25rem 0.625rem 2.25rem',
-                        borderRadius: 'var(--radius-md)',
-                        border: reqConfirmPassword && reqConfirmPassword !== reqPassword ? '1.5px solid #EF4444' : '1px solid var(--neutral-300)',
-                        fontSize: '0.875rem'
-                      }}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowReqConfirmPassword(!showReqConfirmPassword)}
-                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer' }}
-                    >
-                      {showReqConfirmPassword ? <EyeOff size={16} color="var(--neutral-500)" /> : <Eye size={16} color="var(--neutral-500)" />}
-                    </button>
-                  </div>
-
-                  {reqConfirmPassword && reqConfirmPassword !== reqPassword && (
-                    <span style={{ fontSize: '0.725rem', color: '#EF4444', fontWeight: 600, display: 'block', marginTop: '2px' }}>
-                      ⚠️ As senhas digitadas não coincidem.
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsRequestModalOpen(false)}
-                  className="btn btn-secondary"
-                  style={{ flex: 1 }}
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={Boolean(reqConfirmPassword && reqConfirmPassword !== reqPassword)}
-                  style={{ flex: 1.5, fontWeight: 800 }}
-                >
-                  Salvar Senha & Liberar CRP
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <SubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        defaultPlan="monthly"
+        onSubscriptionComplete={handleSubscriptionComplete}
+      />
 
     </div>
   );

@@ -34,13 +34,39 @@ import { isSupabaseConfigured } from './lib/supabaseClient';
 import { Database, ShieldCheck, Info, EyeOff, LogOut } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('psivisor_active_tab') || 'dashboard';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('psivisor_active_tab', activeTab);
+  }, [activeTab]);
+
   const [patientMode, setPatientMode] = useState(false);
   const [isAnonMode, setIsAnonMode] = useState(false);
   
-  // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authenticatedUser, setAuthenticatedUser] = useState(psychologistProfile);
+  // Persistent Auth State (Maintains login session upon browser reload/F5)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const savedSession = localStorage.getItem('psivisor_active_session');
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        return parsed && parsed.isAuthenticated === true;
+      } catch (e) {}
+    }
+    return false;
+  });
+
+  const [authenticatedUser, setAuthenticatedUser] = useState(() => {
+    const savedSession = localStorage.getItem('psivisor_active_session');
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed && parsed.user) return parsed.user;
+      } catch (e) {}
+    }
+    return psychologistProfile;
+  });
 
   // Sidebar Collapsed Mode State (Default: Compact Icon Mode for Clean View)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -188,6 +214,13 @@ export default function App() {
     setIsAuthenticated(true);
     setPatientMode(false);
     
+    // Save active session to localStorage so reloading (F5) keeps user logged in
+    localStorage.setItem('psivisor_active_session', JSON.stringify({
+      isAuthenticated: true,
+      user: userObj,
+      timestamp: Date.now()
+    }));
+
     // Dynamically fetch patients scoped exclusively to this logged in psychologist
     setLoading(true);
     const data = await psychologyService.fetchPatients();
@@ -210,6 +243,7 @@ export default function App() {
     setIsAuthenticated(false);
     setPatientMode(false);
     setPsychologistContext('PSI-061234');
+    localStorage.removeItem('psivisor_active_session');
   };
 
   const handleOpenAssignModal = (patient = null, template = null) => {

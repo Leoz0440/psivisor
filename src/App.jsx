@@ -41,6 +41,9 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authenticatedUser, setAuthenticatedUser] = useState(psychologistProfile);
 
+  // Sidebar Collapsed Mode State (Default: Compact Icon Mode for Clean View)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+
   // Dark Theme State
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('psicoflow_theme') === 'dark';
@@ -404,10 +407,12 @@ export default function App() {
         psychologistProfile={authenticatedUser}
         isAnonMode={isAnonMode}
         onToggleAnonMode={handleToggleAnonMode}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
       {/* Main Content Area */}
-      <main className="main-content">
+      <main className={`main-content ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         
         {/* Anonymization Banner */}
         {isAnonMode && (
@@ -507,6 +512,8 @@ VITE_SUPABASE_ANON_KEY=sua-chave-anonima-aqui`}
           onToggleTheme={handleToggleTheme}
           onOpenSearch={() => setIsSearchOpen(true)}
           onOpenNotifications={() => setIsNotificationsOpen(true)}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
 
         {loading ? (

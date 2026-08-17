@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, Bell, Shield, Sparkles, Sun, Moon } from 'lucide-react';
+import { Search, Plus, Bell, Shield, Sparkles, Sun, Moon, Menu } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 
@@ -8,7 +8,9 @@ export default function Header({
   isDarkMode, 
   onToggleTheme, 
   onOpenSearch,
-  onOpenNotifications 
+  onOpenNotifications,
+  isSidebarCollapsed,
+  onToggleSidebar
 }) {
   const getTabTitle = () => {
     switch (activeTab) {
@@ -31,7 +33,30 @@ export default function Header({
       flexWrap: 'wrap'
     }}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--neutral-300)',
+                color: 'var(--primary-700)',
+                width: '38px',
+                height: '38px',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-sm)',
+                transition: 'all 0.2s ease'
+              }}
+              title={isSidebarCollapsed ? "Expandir Menu Lateral (Mostrar Opções)" : "Recolher Menu Lateral (Modo Foco)"}
+            >
+              <Menu size={20} />
+            </button>
+          )}
+
           <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--primary-900)' }}>
             {getTabTitle()}
           </h2>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -9,10 +9,23 @@ import {
   Smartphone,
   ShieldCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  ChevronLeft,
+  ChevronRight,
+  Menu
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, patientMode, setPatientMode, psychologistProfile, isAnonMode, onToggleAnonMode }) {
+export default function Sidebar({ 
+  activeTab, 
+  setActiveTab, 
+  patientMode, 
+  setPatientMode, 
+  psychologistProfile, 
+  isAnonMode, 
+  onToggleAnonMode,
+  isCollapsed = true,
+  onToggleCollapse
+}) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const menuItems = [
@@ -24,9 +37,16 @@ export default function Sidebar({ activeTab, setActiveTab, patientMode, setPatie
   ];
 
   return (
-    <aside className={`sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
-      {/* Brand Header with Mobile Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
+      {/* Brand Header with Collapse Toggle */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: isCollapsed ? 'center' : 'space-between', 
+        marginBottom: '1.5rem', 
+        padding: isCollapsed ? '0' : '0 0.5rem',
+        position: 'relative'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <img
             src="/psivisor_logo_concept_1.jpg"
@@ -40,15 +60,42 @@ export default function Sidebar({ activeTab, setActiveTab, patientMode, setPatie
               boxShadow: 'var(--shadow-glow)'
             }}
           />
-          <div>
-            <h1 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>
-              PsiVisor
-            </h1>
-            <span style={{ fontSize: '0.7rem', color: 'var(--primary-300)', display: 'block', marginTop: '-2px' }}>
-              Prontuários & Gestão Clínica
-            </span>
-          </div>
+          {!isCollapsed && (
+            <div className="animate-fade-in">
+              <h1 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>
+                PsiVisor
+              </h1>
+              <span style={{ fontSize: '0.7rem', color: 'var(--primary-300)', display: 'block', marginTop: '-2px' }}>
+                Prontuários & Gestão Clínica
+              </span>
+            </div>
+          )}
         </div>
+
+        {/* Desktop Collapse Toggle Button */}
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            style={{
+              background: 'rgba(255, 255, 255, 0.12)',
+              border: 'none',
+              color: '#ffffff',
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            className="desktop-only-btn"
+            title={isCollapsed ? "Expandir Menu Lateral (Mostrar Textos)" : "Recolher Menu Lateral (Modo Ícones Foco)"}
+          >
+            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+        )}
 
         {/* Mobile Hamburger Toggle */}
         <button
@@ -80,11 +127,13 @@ export default function Sidebar({ activeTab, setActiveTab, patientMode, setPatie
                 setPatientMode(false);
                 setActiveTab(item.id);
               }}
+              title={isCollapsed ? item.label : ''}
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: isCollapsed ? 'center' : 'flex-start',
                 gap: '12px',
-                padding: '0.75rem 1rem',
+                padding: isCollapsed ? '0.85rem 0' : '0.75rem 1rem',
                 borderRadius: 'var(--radius-md)',
                 background: isActive ? 'var(--primary-700)' : 'transparent',
                 color: isActive ? '#ffffff' : 'var(--neutral-400)',
@@ -93,18 +142,26 @@ export default function Sidebar({ activeTab, setActiveTab, patientMode, setPatie
                 fontWeight: isActive ? 600 : 400,
                 fontSize: '0.9rem',
                 transition: 'all 0.2s ease',
-                textAlign: 'left'
+                textAlign: 'left',
+                width: '100%'
               }}
             >
-              <Icon size={18} color={isActive ? '#ffffff' : 'var(--primary-300)'} />
-              <span>{item.label}</span>
+              <Icon size={20} color={isActive ? '#ffffff' : 'var(--primary-300)'} />
+              {!isCollapsed && <span className="animate-fade-in">{item.label}</span>}
             </button>
           );
         })}
       </nav>
 
-      {/* Mode Switches */}
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+      {/* Mode Switches & Profile */}
+      <div style={{ 
+        marginTop: 'auto', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '0.75rem', 
+        paddingTop: '1rem', 
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)' 
+      }}>
         
         {/* Anonymization Mode Switch (Supervisão Clínica) */}
         <button
@@ -112,27 +169,32 @@ export default function Sidebar({ activeTab, setActiveTab, patientMode, setPatie
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.75rem',
+            justifyContent: isCollapsed ? 'center' : 'space-between',
+            padding: isCollapsed ? '0.75rem 0' : '0.75rem',
             borderRadius: 'var(--radius-md)',
             background: isAnonMode ? 'rgba(217, 119, 98, 0.2)' : 'rgba(255, 255, 255, 0.05)',
             border: isAnonMode ? '1px solid var(--accent-terracotta)' : '1px solid rgba(255, 255, 255, 0.1)',
             color: '#ffffff',
             cursor: 'pointer',
             fontSize: '0.8rem',
-            fontWeight: 600
+            fontWeight: 600,
+            width: '100%'
           }}
-          title="Oculta nomes e dados pessoais para reuniões de supervisão clínica"
+          title="Modo Supervisão Clínica Anônimo (Oculta dados sensíveis por segurança LGPD)"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isAnonMode ? <EyeOff size={16} color="var(--accent-terracotta)" /> : <Eye size={16} color="var(--primary-300)" />}
-            <span style={{ color: isAnonMode ? 'var(--accent-terracotta)' : '#ffffff' }}>
-              {isAnonMode ? 'Modo Anônimo Ativo' : 'Modo Supervisão'}
-            </span>
+            {isAnonMode ? <EyeOff size={18} color="var(--accent-terracotta)" /> : <Eye size={18} color="var(--primary-300)" />}
+            {!isCollapsed && (
+              <span style={{ color: isAnonMode ? 'var(--accent-terracotta)' : '#ffffff' }} className="animate-fade-in">
+                {isAnonMode ? 'Modo Anônimo Ativo' : 'Modo Supervisão'}
+              </span>
+            )}
           </div>
-          <span style={{ fontSize: '0.65rem', background: isAnonMode ? 'var(--accent-terracotta)' : 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
-            LGPD
-          </span>
+          {!isCollapsed && (
+            <span style={{ fontSize: '0.65rem', background: isAnonMode ? 'var(--accent-terracotta)' : 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
+              LGPD
+            </span>
+          )}
         </button>
 
         {/* Patient Simulator Switch */}
@@ -142,50 +204,63 @@ export default function Sidebar({ activeTab, setActiveTab, patientMode, setPatie
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.75rem',
+            justifyContent: isCollapsed ? 'center' : 'space-between',
+            padding: isCollapsed ? '0.75rem 0' : '0.75rem',
             borderRadius: 'var(--radius-md)',
             background: patientMode ? 'var(--primary-500)' : 'rgba(255, 255, 255, 0.05)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             color: '#ffffff',
             cursor: 'pointer',
             fontSize: '0.8rem',
-            fontWeight: 600
+            fontWeight: 600,
+            width: '100%'
           }}
+          title="Visão do Paciente (Simula o portal do paciente)"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Smartphone size={16} color={patientMode ? '#ffffff' : 'var(--primary-300)'} />
-            <span>{patientMode ? 'Modo Paciente Ativo' : 'Visão do Paciente'}</span>
+            <Smartphone size={18} color={patientMode ? '#ffffff' : 'var(--primary-300)'} />
+            {!isCollapsed && (
+              <span className="animate-fade-in">{patientMode ? 'Modo Paciente Ativo' : 'Visão do Paciente'}</span>
+            )}
           </div>
-          <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
-            Demo
-          </span>
+          {!isCollapsed && (
+            <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
+              Demo
+            </span>
+          )}
         </button>
 
         {/* Psychologist Profile Card */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          padding: '0.5rem',
-          background: 'rgba(255, 255, 255, 0.03)',
-          borderRadius: 'var(--radius-md)'
-        }}>
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            gap: '10px',
+            padding: '0.5rem',
+            background: 'rgba(255, 255, 255, 0.03)',
+            borderRadius: 'var(--radius-md)'
+          }}
+          title={isCollapsed ? `${psychologistProfile.name} (${psychologistProfile.crp})` : ''}
+        >
           <img
             src={psychologistProfile.avatar}
             alt={psychologistProfile.name}
             style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
           />
-          <div style={{ overflow: 'hidden' }}>
-            <h4 style={{ fontSize: '0.85rem', color: '#ffffff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {psychologistProfile.name}
-            </h4>
-            <span style={{ fontSize: '0.7rem', color: 'var(--primary-300)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <ShieldCheck size={12} /> {psychologistProfile.crp}
-            </span>
-          </div>
+          {!isCollapsed && (
+            <div style={{ overflow: 'hidden' }} className="animate-fade-in">
+              <h4 style={{ fontSize: '0.85rem', color: '#ffffff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {psychologistProfile.name}
+              </h4>
+              <span style={{ fontSize: '0.7rem', color: 'var(--primary-300)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <ShieldCheck size={12} /> {psychologistProfile.crp}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </aside>
   );
 }
+
